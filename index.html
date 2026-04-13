@@ -68,6 +68,11 @@
   .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
   .form-group input, .form-group select { width: 100%; padding: 0.8rem; border: 1px solid var(--border); border-radius: 8px; }
 
+  .chat-box { height: 320px; overflow-y: auto; background: #fcfdfe; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--border); }
+  .msg { max-width: 85%; padding: 0.8rem 1.2rem; border-radius: 15px; font-size: 0.95rem; line-height: 1.5; }
+  .msg.bot { align-self: flex-start; background: white; border: 1px solid var(--border); }
+  .msg.user { align-self: flex-end; background: var(--primary); color: white; }
+
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; padding: 1rem; color: var(--text-hint); font-size: 0.8rem; border-bottom: 2px solid var(--border); }
   td { padding: 1rem; border-bottom: 1px solid var(--border); }
@@ -116,9 +121,19 @@
         <div class="card kpi-card" style="grid-column: span 3;"><i class="fa-solid fa-coins" style="color: var(--success);"></i><div class="val" id="stat-recette">0 CFA</div><div class="lbl">Revenus Totaux</div></div>
         <div class="card kpi-card" style="grid-column: span 3;"><i class="fa-solid fa-users-gear" style="color: var(--primary);"></i><div class="val" id="stat-chauffeurs">0</div><div class="lbl">Chauffeurs Libres</div></div>
     </div>
-    <div class="card">
-        <h2><i class="fa-solid fa-chart-bar"></i> Volume de trajets par Circuit</h2>
-        <div id="main-chart" style="height:400px;"></div>
+    <div class="grid">
+        <div class="card" style="grid-column: span 8;">
+            <h2><i class="fa-solid fa-chart-bar"></i> Volume de trajets par Circuit</h2>
+            <div id="main-chart" style="height:400px;"></div>
+        </div>
+        <div class="card" style="grid-column: span 4; display:flex; flex-direction:column;">
+            <h2><i class="fa-solid fa-robot"></i> Assistant IA</h2>
+            <div class="chat-box" id="chat-box"><div class="msg bot">Bonjour ! Je suis TranspoBot.</div></div>
+            <div style="display:flex; gap:8px; margin-top:1rem;">
+                <input type="text" id="chat-input" style="flex:1; padding:0.8rem; border:1px solid var(--border); border-radius:10px;" placeholder="Posez une question..." onkeypress="if(event.key==='Enter') envoyerMessage()">
+                <button class="btn-primary" onclick="envoyerMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
     </div>
   </div>
 
@@ -166,6 +181,7 @@
     <div class="form-group"><label>Capacité</label><input type="number" id="v-cap" required></div>
     <div class="form-group"><label>Statut</label><select id="v-statut"><option value="actif">Actif</option><option value="maintenance">Maintenance</option></select></div>
     <button type="submit" class="btn-primary" style="width:100%">Enregistrer</button>
+    <button type="button" onclick="fermerModale('vehicule')" style="width:100%; margin-top:10px; padding:0.65rem 1.3rem; background:none; border:none; color:var(--text-hint); font-weight:600; cursor:pointer;">Annuler</button>
   </form>
 </div></div>
 
@@ -178,6 +194,7 @@
     <div class="form-group"><label>Permis</label><input type="text" id="c-permis" required></div>
     <div class="form-group"><label>Catégorie</label><input type="text" id="c-cat" required></div>
     <button type="submit" class="btn-primary" style="width:100%">Enregistrer</button>
+    <button type="button" onclick="fermerModale('chauffeur')" style="width:100%; margin-top:10px; padding:0.65rem 1.3rem; background:none; border:none; color:var(--text-hint); font-weight:600; cursor:pointer;">Annuler</button>
   </form>
 </div></div>
 
@@ -190,6 +207,7 @@
     <div class="form-group"><label>Départ</label><input type="datetime-local" id="t-depart" required></div>
     <div class="form-group"><label>Recette (CFA)</label><input type="number" id="t-recette" value="0"></div>
     <button type="submit" class="btn-primary" style="width:100%">Enregistrer</button>
+    <button type="button" onclick="fermerModale('trajet')" style="width:100%; margin-top:10px; padding:0.65rem 1.3rem; background:none; border:none; color:var(--text-hint); font-weight:600; cursor:pointer;">Annuler</button>
   </form>
 </div></div>
 
@@ -199,6 +217,7 @@
     <div class="form-group"><label>Pseudo</label><input type="text" id="login-user" required></div>
     <div class="form-group"><label>Mot de passe</label><input type="password" id="login-pass" required></div>
     <button type="submit" class="btn-primary" style="width:100%">Se connecter</button>
+    <button type="button" onclick="fermerModale('login')" style="width:100%; margin-top:10px; padding:0.65rem 1.3rem; background:none; border:none; color:var(--text-hint); font-weight:600; cursor:pointer;">Annuler</button>
   </form>
 </div></div>
 
@@ -209,6 +228,7 @@
     <div class="form-group"><label>Pseudo</label><input type="text" id="sign-user" required></div>
     <div class="form-group"><label>Mot de passe</label><input type="password" id="sign-pass" required></div>
     <button type="submit" class="btn-primary" style="width:100%">Créer mon compte</button>
+    <button type="button" onclick="fermerModale('signup')" style="width:100%; margin-top:10px; padding:0.65rem 1.3rem; background:none; border:none; color:var(--text-hint); font-weight:600; cursor:pointer;">Annuler</button>
   </form>
 </div></div>
 
@@ -241,14 +261,64 @@ function initEtatSession() {
 }
 
 function changerVue(v) {
+    localStorage.setItem('vueActuelle', v); // Sauvegarde de la vue
     document.querySelectorAll('.view-section, nav button').forEach(el=>el.classList.remove('active'));
     document.getElementById(`view-${v}`).classList.add('active');
-    document.getElementById(`nav-${v}`).classList.add('active');
+    
+    const btn = document.getElementById(`nav-${v}`);
+    if(btn) btn.classList.add('active');
+
     if(v==='dashboard') chargerDashboard();
     if(v==='vehicules') chargerVehicules();
     if(v==='chauffeurs') chargerChauffeurs();
     if(v==='trajets') chargerTrajets();
     if(v==='admin') chargerUtilisateurs();
+}
+
+async function envoyerMessage() {
+    const input = document.getElementById('chat-input');
+    const box = document.getElementById('chat-box');
+    const msg = input.value.trim();
+    if(!msg) return;
+
+    // Affiche le message de l'utilisateur
+    box.innerHTML += `<div class="msg user">${msg}</div>`;
+    input.value = '';
+    box.scrollTop = box.scrollHeight;
+    localStorage.setItem('chatHistory', box.innerHTML);
+
+    // Simulation d'une analyse (Effet "IA")
+    const tempId = 'thinking-' + Date.now();
+    box.innerHTML += `<div class="msg bot" id="${tempId}" style="color:var(--text-hint); font-style:italic;">
+        <i class="fa-solid fa-spinner fa-spin"></i> TranspoBot analyse vos données...
+    </div>`;
+    box.scrollTop = box.scrollHeight;
+
+    try {
+        const r = await fetch(`${API}/api/chat`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ question: msg }) });
+        if (!r.ok) {
+            throw new Error(`Erreur API: ${r.status}`);
+        }
+        const d = await r.json();
+        
+        // On attend un petit peu pour l'effet réaliste
+        setTimeout(() => {
+            const thinkingMsg = document.getElementById(tempId);
+            if(thinkingMsg) thinkingMsg.remove();
+            box.innerHTML += `<div class="msg bot">${d.answer}</div>`;
+            box.scrollTop = box.scrollHeight;
+            localStorage.setItem('chatHistory', box.innerHTML);
+        }, 1500);
+
+    } catch (err) {
+        setTimeout(() => {
+            const thinkingMsg = document.getElementById(tempId);
+            if(thinkingMsg) thinkingMsg.remove();
+            box.innerHTML += `<div class="msg bot">Désolé, l'IA est hors ligne ou injoignable.</div>`;
+            box.scrollTop = box.scrollHeight;
+            localStorage.setItem('chatHistory', box.innerHTML);
+        }, 1000);
+    }
 }
 
 async function chargerDashboard() {
@@ -266,7 +336,6 @@ async function initialiserGraphique() {
     const trips = await r.json();
     const stats = {};
     trips.forEach(t => { stats[t.ligne] = (stats[t.ligne] || 0) + 1; });
-    
     Highcharts.chart('main-chart', {
         chart: { type: 'column', backgroundColor: 'transparent' },
         title: { text: null },
@@ -347,11 +416,32 @@ async function gererInscription(e) {
     if(r.ok) { notifier("Compte créé !"); fermerModale('signup'); }
 }
 
-function deconnexion() { localStorage.clear(); location.reload(); }
+function deconnexion() { 
+    localStorage.clear(); 
+    location.reload(); 
+}
+
 function ouvrirModale(n) { document.getElementById(`modal-${n}`).classList.add('active'); }
 function fermerModale(n) { document.getElementById(`modal-${n}`).classList.remove('active'); }
 
-document.addEventListener('DOMContentLoaded', () => { initEtatSession(); chargerDashboard(); });
+// --- INITIALISATION AU CHARGEMENT ---
+document.addEventListener('DOMContentLoaded', () => {
+    initEtatSession();
+    
+    // Restaurer l'historique du chat IA
+    const chatHistory = localStorage.getItem('chatHistory');
+    if (chatHistory) {
+        const box = document.getElementById('chat-box');
+        if (box) {
+            box.innerHTML = chatHistory;
+            box.scrollTop = box.scrollHeight;
+        }
+    }
+    
+    // Restaurer la dernière vue ou aller sur 'dashboard' par défaut
+    const vueSauvegardee = localStorage.getItem('vueActuelle') || 'dashboard';
+    changerVue(vueSauvegardee);
+});
 </script>
 </body>
 </html>

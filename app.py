@@ -16,7 +16,6 @@ load_dotenv()
 
 app = FastAPI(title="TranspoBot - Gestion de Transport")
 
-# Configuration via variables d'environnement
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASS = os.getenv("DB_PASS", "Seydina20042018")
@@ -32,7 +31,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pool de connexion pour plus de performance
 db_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="transpopool",
     pool_size=5,
@@ -60,7 +58,6 @@ def executer_requete(requete, params=None):
         if 'curseur' in locals(): curseur.close()
         if 'conn' in locals(): conn.close()
 
-# ── Sécurité & Auth ──────────────────────────────────────────
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
@@ -75,14 +72,11 @@ async def obtenir_u_connecte(token: str = Depends(oauth2_scheme)):
 
 @app.on_event("startup")
 async def initialiser():
-    # Création admin par défaut si vide
     res = executer_requete("SELECT COUNT(*) as n FROM utilisateurs")
     if res[0]['n'] == 0:
         h_pass = pwd_context.hash("admin123")
-        executer_requete("INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe, nom_complet, role) VALUES (%s, %s, %s, 'admin')",
-                        ("admin", h_pass, "Administrateur"))
+        executer_requete("INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe, nom_complet, role) VALUES (%s, %s, %s, 'admin')", ("admin", h_pass, "Administrateur"))
 
-# ── Modèles Pydantic ──────────────────────────────────────────
 class ModèleInscription(BaseModel):
     nom_utilisateur: str
     mot_de_passe: str
@@ -109,12 +103,13 @@ class ModèleTrajet(BaseModel):
     date_heure_depart: str
     recette: float = 0.0
 
-# ── Routes API ────────────────────────────────────────────────
+class QuestionIA(BaseModel):
+    question: str
+
 @app.post("/api/auth/inscription")
 def inscription(u: ModèleInscription):
     h_pass = pwd_context.hash(u.mot_de_passe)
-    executer_requete("INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe, nom_complet, role) VALUES (%s, %s, %s, 'gestionnaire')",
-                    (u.nom_utilisateur, h_pass, u.nom_complet))
+    executer_requete("INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe, nom_complet, role) VALUES (%s, %s, %s, 'gestionnaire')", (u.nom_utilisateur, h_pass, u.nom_complet))
     return {"ok": True}
 
 @app.post("/api/auth/login")
@@ -132,6 +127,48 @@ def stats():
     r = executer_requete("SELECT SUM(recette) as n FROM trajets")[0]['n'] or 0
     c = executer_requete("SELECT COUNT(*) as n FROM chauffeurs WHERE disponibilite=1")[0]['n']
     return {"total_trajets": t, "vehicules_actifs": v, "recette_totale": float(r), "chauffeurs_libres": c}
+
+import requests
+
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3") # Changez si vous utilisez phi3, mistral, etc.
+
+@app.post("/api/chat")
+async def chat_ia(q: QuestionIA):
+    # 1. Extraction en temps réel du contexte depuis la base de données
+    t = executer_requete("SELECT COUNT(*) as n FROM trajets")[0]['n']
+    v = executer_requete("SELECT COUNT(*) as n FROM vehicules WHERE statut='actif'")[0]['n']
+    r = executer_requete("SELECT SUM(recette) as n FROM trajets")[0]['n'] or 0
+    c = executer_requete("SELECT COUNT(*) as n FROM chauffeurs WHERE disponibilite=1")[0]['n']
+    
+    res = executer_requete("SELECT ch.prenom, ch.nom, COUNT(t.id) as nb FROM trajets t JOIN chauffeurs ch ON t.chauffeur_id = ch.id GROUP BY ch.id ORDER BY nb DESC LIMIT 1")
+    meilleur_chauffeur = f"{res[0]['prenom']} {res[0]['nom']} avec {res[0]['nb']} trajets" if res else "Inconnu"
+
+    # 2. Création du prompt pour forcer l'IA à utiliser VOS données
+    prompt = f"""Tu es TranspoBot, l'assistant IA d'une entreprise de transport sénégalaise. 
+    Voici les données en temps réel de l'entreprise : 
+    - Trajets totaux menés : {t}
+    - Moyenne estimée : {round(t/4, 1)} trajets/semaine
+    - Bus actifs : {v}
+    - Chauffeurs disponibles immédiatement : {c}
+    - Chiffre d'affaires total : {float(r):,.0f} CFA
+    - Employé du mois (meilleur chauffeur) : {meilleur_chauffeur}
+    
+    Réponds de façon courte, professionnelle et chaleureuse à la question suivante de l'utilisateur : "{q.question}"
+    """
+
+    # 3. Requête vers le modèle Ollama local
+    try:
+        response = requests.post(f"{OLLAMA_URL}/api/generate", json={
+            "model": OLLAMA_MODEL,
+            "prompt": prompt,
+            "stream": False
+        }, timeout=15)
+        response.raise_for_status()
+        answer = response.json().get("response", "Erreur lors de la génération de la réponse.")
+        return {"answer": answer}
+    except requests.exceptions.RequestException:
+        raise HTTPException(status_code=503, detail="Le modèle d'IA local (Ollama) est éteint ou injoignable.")
 
 @app.get("/api/vehicules")
 def list_v(): return executer_requete("SELECT * FROM vehicules")
@@ -168,7 +205,6 @@ def list_u(u: dict = Depends(obtenir_u_connecte)):
     if u['role'] != 'admin': raise HTTPException(status_code=403)
     return executer_requete("SELECT id, nom_utilisateur, nom_complet, role FROM utilisateurs")
 
-# Montage statique
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 if __name__ == "__main__":

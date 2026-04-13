@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-mysql-connector-python
-pydantic
-python-jose[cryptography]
-passlib[pbkdf2_sha256]
-python-dotenv
-python-multipart

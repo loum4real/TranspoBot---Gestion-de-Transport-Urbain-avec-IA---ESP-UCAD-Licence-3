@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+.idea/
+.vscode/
+*.db
+diagnostic_db.py
+nettoyer.py
+test_db.py
+trash/

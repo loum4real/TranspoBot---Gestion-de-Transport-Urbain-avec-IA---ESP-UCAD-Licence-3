@@ -19,7 +19,7 @@ app = FastAPI(title="TranspoBot - Gestion de Transport")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", 3306))
 DB_USER = os.getenv("DB_USER", "root")
-DB_PASS = os.getenv("DB_PASS", "Seydina20042018")
+DB_PASS = os.getenv("DB_PASSWORD", os.getenv("DB_PASS", "Seydina20042018"))
 DB_NAME = os.getenv("DB_NAME", "transpobot")
 SECRET_KEY = os.getenv("SECRET_KEY", "cle_secrete_transpobot_2024")
 ALGORITHM = "HS256"

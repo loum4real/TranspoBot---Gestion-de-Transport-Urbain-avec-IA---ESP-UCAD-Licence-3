@@ -17,6 +17,7 @@ load_dotenv()
 app = FastAPI(title="TranspoBot - Gestion de Transport")
 
 DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = int(os.getenv("DB_PORT", 3306))
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASS = os.getenv("DB_PASS", "Seydina20042018")
 DB_NAME = os.getenv("DB_NAME", "transpobot")
@@ -35,6 +36,7 @@ db_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="transpopool",
     pool_size=5,
     host=DB_HOST,
+    port=DB_PORT,
     user=DB_USER,
     password=DB_PASS,
     database=DB_NAME,

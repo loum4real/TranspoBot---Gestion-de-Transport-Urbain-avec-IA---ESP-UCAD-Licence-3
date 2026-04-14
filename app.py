@@ -188,22 +188,9 @@ async def chat_ia(q: QuestionIA):
         print(f"--- REQUÊTE SQL GÉNÉRÉE PAR L'IA ---\n{sql_query}\n----------------------------------")
         result = executer_requete(sql_query)
         
-        # Formatage en Tableau HTML (Cahier des charges) sans afficher le code SQL
+        # Formatage de la réponse
         if not result:
             return {"answer": "L'analyse a été effectuée, mais la base de données ne contient aucun résultat correspondant à votre demande."}
-
-        html_table = "<div style='overflow-x:auto;'><table style='width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:10px;'>"
-        colonnes = result[0].keys()
-        html_table += "<thead><tr style='background:#f7f9fc;'>"
-        for col in colonnes:
-            html_table += f"<th style='padding:8px; border:1px solid #edf1f7;'>{col}</th>"
-        html_table += "</tr></thead><tbody>"
-        for ligne in result:
-            html_table += "<tr>"
-            for val in ligne.values():
-                html_table += f"<td style='padding:8px; border:1px solid #edf1f7;'>{val}</td>"
-            html_table += "</tr>"
-        html_table += "</tbody></table></div>"
 
         # ÉTAPE 3 : Appel à l'IA pour générer une réponse en langage naturel (français) basée sur les RÉSULTATS
         prompt_synthese = f"""Tu es TranspoBot. La question de l'utilisateur était : "{q.question}".
@@ -224,17 +211,15 @@ Consigne : Rédige UNE phrase très courte, naturelle et cordiale en FRANÇAIS, 
         response_fr.raise_for_status()
         phrase_fr = response_fr.json()["choices"][0]["message"]["content"].strip()
 
-        # On combine la phrase en Français et le Tableau HTML !
-        reponse_finale = f"<div style='margin-bottom:10px; font-weight:600;'>{phrase_fr}</div>" + html_table
-
-        return {"answer": reponse_finale}
+        # On renvoie uniquement la phrase naturelle (sans aucun tableau ni code SQL)
+        return {"answer": f"<div style='font-weight:500;'>{phrase_fr}</div>"}
 
     except requests.exceptions.RequestException as e:
         print(f"Erreur API: {e}")
         raise HTTPException(status_code=503, detail="L'API Groq est injoignable.")
     except Exception as e:
         print(f"Erreur SQL généré : {e}")
-        return {"answer": f"❌ L'IA a généré une requête SQL invalide : <br><code>{e}</code>"}
+        return {"answer": f"❌ L'IA a généré une requête SQL invalide."}
 
 @app.get("/api/vehicules")
 def list_v(): return executer_requete("SELECT * FROM vehicules")

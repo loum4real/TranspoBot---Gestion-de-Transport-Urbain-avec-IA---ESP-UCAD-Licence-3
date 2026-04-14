@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insertion d'un compte administrateur par défaut (admin / admin123)
--- Le mot de passe est hashé avec SHA-256 (compatible avec FastAPI passlib)
+-- Insertion du compte administrateur principal du système
+-- Le mot de passe est sécurisé via la fonction de hachage unidirectionnelle (SHA-256)
 INSERT IGNORE INTO utilisateurs (nom_utilisateur, mot_de_passe, nom_complet, role) 
 VALUES ('admin', '$pbkdf2-sha256$29000$2ds7x1irdW4txXjv3Ttn7A$aBBtx1OiU5WLJH95ddkdC0FJTSjNSkSRGYe6MxQeb7c', 'Admin TranspoBot', 'admin');
 

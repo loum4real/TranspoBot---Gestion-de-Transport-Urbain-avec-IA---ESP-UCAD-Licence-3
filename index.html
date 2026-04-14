@@ -78,6 +78,24 @@
   td { padding: 1rem; border-bottom: 1px solid var(--border); }
 
   .hidden { display: none !important; }
+
+  /* RESPONSIVENESS */
+  @media (max-width: 768px) {
+    header { flex-direction: column; padding: 1rem; gap: 1rem; text-align: center; }
+    nav { flex-wrap: wrap; justify-content: center; width: 100%; gap: 0.5rem; }
+    nav button { padding: 0.5rem 0.8rem; font-size: 0.85rem; }
+    #auth-section { margin-left: 0 !important; width: 100%; justify-content: center; margin-top: 0.5rem; }
+    .container { padding: 1rem; }
+    
+    .grid { display: flex; flex-direction: column; }
+    .card, .kpi-card { width: 100%; margin-bottom: 1rem; overflow-x: auto; }
+    
+    h2 { font-size: 1rem; }
+    .msg { max-width: 95%; }
+    .modal-content { padding: 1.5rem; margin: 1rem; }
+    table { font-size: 0.85rem; }
+    th, td { padding: 0.6rem; }
+  }
 </style>
 </head>
 <body>

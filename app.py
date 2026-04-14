@@ -224,7 +224,7 @@ Consigne : Rédige UNE phrase très courte, naturelle et cordiale en FRANÇAIS, 
         raise HTTPException(status_code=503, detail="L'API Groq est injoignable.")
     except Exception as e:
         print(f"Erreur SQL généré : {e}")
-        return {"answer": f"❌ L'IA a généré une requête SQL invalide."}
+        return {"answer": f"❌ L'IA a rencontré une erreur technique : <br><code>{str(e)}</code><br><small>Re-posez la question différemment.</small>"}
 
 @app.get("/api/vehicules")
 def list_v(): return executer_requete("SELECT * FROM vehicules")

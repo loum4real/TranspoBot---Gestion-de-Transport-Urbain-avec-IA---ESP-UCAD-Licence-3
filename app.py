@@ -156,7 +156,7 @@ async def chat_ia(q: QuestionIA):
     Consigne: Réponds de façon courte, professionnelle et chaleureuse. Utilise uniquement ces données.
     """
 
-    # 3. Requête vers le modèle cloud (Groq - Llama 3)
+    # 3. Requête vers le modèle cloud (Groq - Llama 3.1)
     if not GROQ_API_KEY:
         return {"answer": "⚠️ Clé API Groq manquante. L'IA est désactivée."}
 
@@ -165,7 +165,7 @@ async def chat_ia(q: QuestionIA):
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
             json={
-                "model": "llama3-8b-8192",
+                "model": "llama-3.1-8b-instant",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": q.question}
@@ -179,6 +179,8 @@ async def chat_ia(q: QuestionIA):
         answer = response.json()["choices"][0]["message"]["content"]
         return {"answer": answer}
     except requests.exceptions.RequestException as e:
+        error_msg = response.text if 'response' in locals() else str(e)
+        print(f"Erreur Groq API: {error_msg}")
         raise HTTPException(status_code=503, detail="Le modèle d'IA (Groq) est injoignable.")
 
 @app.get("/api/vehicules")

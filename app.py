@@ -160,7 +160,7 @@ async def chat_ia(q: QuestionIA):
     """
 
     try:
-        # 2. Appel à l'IA pour générer la requête SQL
+        # ÉTAPE 1 : Appel à l'IA pour générer UNIQUEMENT la requête SQL
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
@@ -174,46 +174,63 @@ async def chat_ia(q: QuestionIA):
         )
         response.raise_for_status()
         sql_query = response.json()["choices"][0]["message"]["content"].strip()
-        
-        # Nettoyage de la réponse au cas où l'IA mettrait des balises
         sql_query = sql_query.replace("```sql", "").replace("```", "").strip()
 
-        # 3. SÉCURITÉ : Uniquement des requêtes SELECT
+        # SÉCURITÉ : Uniquement des requêtes SELECT
         if not sql_query.upper().startswith("SELECT"):
-            return {"answer": "⛔ <strong>SÉCURITÉ :</strong> Seules les requêtes SELECT sont autorisées ! L'IA a tenté une commande interdite."}
+            return {"answer": "⛔ <strong>SÉCURITÉ :</strong> Seules les requêtes SELECT sont autorisées !"}
         
         forbidden_keywords = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "GRANT"]
         if any(kw in sql_query.upper() for kw in forbidden_keywords):
             return {"answer": "⛔ <strong>SÉCURITÉ :</strong> Mots-clés de modification détectés. Requête rejetée."}
 
-        # 4. Exécution de la requête générée
+        # ÉTAPE 2 : Exécution de la requête SQL
         result = executer_requete(sql_query)
         
-        # 5. Formatage en Tableau HTML
-        html = f"""<div style="background:#eef2ff; color:#3366ff; padding:8px; border-radius:6px; font-size:0.75rem; margin-bottom:10px; word-break:break-all;">
+        # Formatage en Tableau HTML (Cahier des charges)
+        html_table = f"""<div style="background:#eef2ff; color:#3366ff; padding:8px; border-radius:6px; font-size:0.75rem; margin-bottom:10px; word-break:break-all;">
             <strong>SQL Exécuté :</strong> <code>{sql_query}</code>
         </div>"""
 
         if not result:
-            return {"answer": html + "<em>Aucun résultat trouvé pour cette requête.</em>"}
+            return {"answer": html_table + "L'analyse a été effectuée, mais la base de données ne contient aucun résultat correspondant à votre demande."}
 
-        html += "<div style='overflow-x:auto;'><table style='width:100%; border-collapse:collapse; font-size:0.85rem;'>"
-        # En-têtes du tableau
+        html_table += "<div style='overflow-x:auto;'><table style='width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:10px;'>"
         colonnes = result[0].keys()
-        html += "<thead><tr style='background:#f7f9fc;'>"
+        html_table += "<thead><tr style='background:#f7f9fc;'>"
         for col in colonnes:
-            html += f"<th style='padding:8px; border:1px solid #edf1f7;'>{col}</th>"
-        html += "</tr></thead><tbody>"
-        
-        # Lignes du tableau
+            html_table += f"<th style='padding:8px; border:1px solid #edf1f7;'>{col}</th>"
+        html_table += "</tr></thead><tbody>"
         for ligne in result:
-            html += "<tr>"
+            html_table += "<tr>"
             for val in ligne.values():
-                html += f"<td style='padding:8px; border:1px solid #edf1f7;'>{val}</td>"
-            html += "</tr>"
-        html += "</tbody></table></div>"
+                html_table += f"<td style='padding:8px; border:1px solid #edf1f7;'>{val}</td>"
+            html_table += "</tr>"
+        html_table += "</tbody></table></div>"
 
-        return {"answer": html}
+        # ÉTAPE 3 : Appel à l'IA pour générer une réponse en langage naturel (français) basée sur les RÉSULTATS
+        prompt_synthese = f"""Tu es TranspoBot. La question de l'utilisateur était : "{q.question}".
+Voici les données extraites de la base (en JSON) : {result[:10]} (limité à 10 lignes max).
+Consigne : Rédige UNE phrase très courte, naturelle et cordiale en FRANÇAIS, donnant la réponse exacte issue de ces données."""
+        
+        response_fr = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": "llama-3.1-8b-instant",
+                "messages": [{"role": "user", "content": prompt_synthese}],
+                "temperature": 0.3,
+                "max_tokens": 150
+            },
+            timeout=10
+        )
+        response_fr.raise_for_status()
+        phrase_fr = response_fr.json()["choices"][0]["message"]["content"].strip()
+
+        # On combine la phrase en Français et le Tableau HTML !
+        reponse_finale = f"<div style='margin-bottom:10px; font-weight:600;'>{phrase_fr}</div>" + html_table
+
+        return {"answer": reponse_finale}
 
     except requests.exceptions.RequestException as e:
         print(f"Erreur API: {e}")

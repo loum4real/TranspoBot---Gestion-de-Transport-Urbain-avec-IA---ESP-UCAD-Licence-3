@@ -142,23 +142,26 @@ async def chat_ia(q: QuestionIA):
     # 1. Définition du Schéma pour le Text-to-SQL
     schema = """
     Table utilisateurs (id, nom_utilisateur, mot_de_passe, nom_complet, role)
-    Table vehicules (id, immatriculation, type, capacite, statut ['actif' ou 'maintenance'])
-    Table chauffeurs (id, nom, prenom, telephone, numero_permis, categorie_permis, vehicule_id, disponibilite [1=Libre, 0=Occupé])
-    Table lignes (id, nom, depart, arrivee, distance_km)
-    Table trajets (id, ligne_id, chauffeur_id, vehicule_id, date_heure_depart, date_heure_arrivee, statut, recette)
+    Table vehicules (id, immatriculation, type, capacite, statut)
+    Table chauffeurs (id, nom, prenom, telephone, numero_permis, categorie_permis, vehicule_id, disponibilite)
+    Table lignes (id, code, nom, origine, destination, distance_km, duree_minutes)
+    Table tarifs (id, ligne_id, type_client, prix)
+    Table trajets (id, ligne_id, chauffeur_id, vehicule_id, date_heure_depart, date_heure_arrivee, statut, nb_passagers, recette)
+    Table incidents (id, trajet_id, type, description, gravite, date_incident, resolu)
     """
 
-    prompt = f"""Tu es un assistant Text-to-SQL robotique.
-    Voici le schéma de la base de données :
+    prompt = f"""Tu es un expert Text-to-SQL MySQL.
+    Schéma de la base de données :
     {schema}
     
-    Tâche: Traduis la demande utilisateur en une requête SQL MySQL SELECT.
-    Demande utilisateur: "{q.question}"
+    Tâche: Traduis la demande utilisateur en requête SQL MySQL SELECT.
+    Demande: "{q.question}"
     
-    Règles STRICtES:
-    - Renvoie UNIQUEMENT la requête SQL. Aucun texte avant, aucun texte après.
-    - Ne pas encadrer de balises ```sql, juste le code brut.
-    - Assure-toi que la requête commence par SELECT.
+    Règles STRICTES:
+    - Fais TOUJOURS des JOIN pour récupérer les noms (lignes.nom, chauffeurs.nom, vehicules.immatriculation) au lieu d'afficher de simples IDs (comme ligne_id).
+    - Utilise des alias (ex: AS Ligne_Nom, AS Chauffeur_Nom) pour que le résultat final soit directement lisible par un humain.
+    - Qu'un "trajet fréquent" veut dire la "ligne" la plus utilisée (GROUP BY ligne_id).
+    - Renvoie UNIQUEMENT la requête SQL. Aucun texte avant ou après, pas de balises. Commence par SELECT.
     """
 
     try:

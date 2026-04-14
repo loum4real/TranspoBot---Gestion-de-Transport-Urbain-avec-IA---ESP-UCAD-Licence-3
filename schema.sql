@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
 );
 
 -- Insertion d'un compte administrateur par défaut (admin / admin123)
--- Le mot de passe est hashé avec bcrypt ($2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGGa31KW)
+-- Le mot de passe est hashé avec SHA-256 (compatible avec FastAPI passlib)
 INSERT IGNORE INTO utilisateurs (nom_utilisateur, mot_de_passe, nom_complet, role) 
-VALUES ('admin', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGGa31KW', 'Admin TranspoBot', 'admin');
+VALUES ('admin', '$pbkdf2-sha256$29000$2ds7x1irdW4txXjv3Ttn7A$aBBtx1OiU5WLJH95ddkdC0FJTSjNSkSRGYe6MxQeb7c', 'Admin TranspoBot', 'admin');
 
 
 -- Table : chauffeurs (Ressources humaines)

@@ -49,4 +49,6 @@
    ```
 
 ## 📝 Auteur
-- Développé dans le cadre du projet GLSI.
+Aliou Loum – Ngary Diop -Mamadou Lamarana doucouré – Seydina Ababacar Counta Dioum - Ndeye Niaw Laye Thiaw 
+
+

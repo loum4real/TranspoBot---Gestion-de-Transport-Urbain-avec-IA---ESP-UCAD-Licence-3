@@ -130,8 +130,7 @@ def stats():
 
 import requests
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3") # Changez si vous utilisez phi3, mistral, etc.
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 @app.post("/api/chat")
 async def chat_ia(q: QuestionIA):
@@ -145,7 +144,7 @@ async def chat_ia(q: QuestionIA):
     meilleur_chauffeur = f"{res[0]['prenom']} {res[0]['nom']} avec {res[0]['nb']} trajets" if res else "Inconnu"
 
     # 2. Création du prompt pour forcer l'IA à utiliser VOS données
-    prompt = f"""Tu es TranspoBot, l'assistant IA d'une entreprise de transport sénégalaise. 
+    system_prompt = f"""Tu es TranspoBot, l'assistant IA d'une entreprise de transport sénégalaise. 
     Voici les données en temps réel de l'entreprise : 
     - Trajets totaux menés : {t}
     - Moyenne estimée : {round(t/4, 1)} trajets/semaine
@@ -154,21 +153,33 @@ async def chat_ia(q: QuestionIA):
     - Chiffre d'affaires total : {float(r):,.0f} CFA
     - Employé du mois (meilleur chauffeur) : {meilleur_chauffeur}
     
-    Réponds de façon courte, professionnelle et chaleureuse à la question suivante de l'utilisateur : "{q.question}"
+    Consigne: Réponds de façon courte, professionnelle et chaleureuse. Utilise uniquement ces données.
     """
 
-    # 3. Requête vers le modèle Ollama local
+    # 3. Requête vers le modèle cloud (Groq - Llama 3)
+    if not GROQ_API_KEY:
+        return {"answer": "⚠️ Clé API Groq manquante. L'IA est désactivée."}
+
     try:
-        response = requests.post(f"{OLLAMA_URL}/api/generate", json={
-            "model": OLLAMA_MODEL,
-            "prompt": prompt,
-            "stream": False
-        }, timeout=15)
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+            json={
+                "model": "llama3-8b-8192",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": q.question}
+                ],
+                "temperature": 0.3,
+                "max_tokens": 150
+            },
+            timeout=10
+        )
         response.raise_for_status()
-        answer = response.json().get("response", "Erreur lors de la génération de la réponse.")
+        answer = response.json()["choices"][0]["message"]["content"]
         return {"answer": answer}
-    except requests.exceptions.RequestException:
-        raise HTTPException(status_code=503, detail="Le modèle d'IA local (Ollama) est éteint ou injoignable.")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=503, detail="Le modèle d'IA (Groq) est injoignable.")
 
 @app.get("/api/vehicules")
 def list_v(): return executer_requete("SELECT * FROM vehicules")

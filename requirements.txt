@@ -6,3 +6,4 @@ python-jose[cryptography]
 passlib[pbkdf2_sha256]
 python-dotenv
 python-multipart
+requests

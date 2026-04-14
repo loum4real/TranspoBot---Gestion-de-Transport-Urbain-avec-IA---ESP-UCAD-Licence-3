@@ -185,17 +185,14 @@ async def chat_ia(q: QuestionIA):
             return {"answer": "⛔ <strong>SÉCURITÉ :</strong> Mots-clés de modification détectés. Requête rejetée."}
 
         # ÉTAPE 2 : Exécution de la requête SQL
+        print(f"--- REQUÊTE SQL GÉNÉRÉE PAR L'IA ---\n{sql_query}\n----------------------------------")
         result = executer_requete(sql_query)
         
-        # Formatage en Tableau HTML (Cahier des charges)
-        html_table = f"""<div style="background:#eef2ff; color:#3366ff; padding:8px; border-radius:6px; font-size:0.75rem; margin-bottom:10px; word-break:break-all;">
-            <strong>SQL Exécuté :</strong> <code>{sql_query}</code>
-        </div>"""
-
+        # Formatage en Tableau HTML (Cahier des charges) sans afficher le code SQL
         if not result:
-            return {"answer": html_table + "L'analyse a été effectuée, mais la base de données ne contient aucun résultat correspondant à votre demande."}
+            return {"answer": "L'analyse a été effectuée, mais la base de données ne contient aucun résultat correspondant à votre demande."}
 
-        html_table += "<div style='overflow-x:auto;'><table style='width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:10px;'>"
+        html_table = "<div style='overflow-x:auto;'><table style='width:100%; border-collapse:collapse; font-size:0.85rem; margin-bottom:10px;'>"
         colonnes = result[0].keys()
         html_table += "<thead><tr style='background:#f7f9fc;'>"
         for col in colonnes:

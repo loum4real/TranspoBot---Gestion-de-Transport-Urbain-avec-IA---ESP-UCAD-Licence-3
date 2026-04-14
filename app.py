@@ -158,9 +158,9 @@ async def chat_ia(q: QuestionIA):
     Demande: "{q.question}"
     
     Règles STRICTES:
-    - Fais TOUJOURS des JOIN pour récupérer les noms (lignes.nom, chauffeurs.nom, vehicules.immatriculation) au lieu d'afficher de simples IDs (comme ligne_id).
-    - Utilise des alias (ex: AS Ligne_Nom, AS Chauffeur_Nom) pour que le résultat final soit directement lisible par un humain.
-    - Qu'un "trajet fréquent" veut dire la "ligne" la plus utilisée (GROUP BY ligne_id).
+    - Fais des JOIN pour récupérer les noms réels quand nécessaire (ex: lignes.nom, vehicules.immatriculation).
+    - NE CRÉE PAS DE COLONNES IMAGINAIRES. Utilise uniquement les colonnes listées dans le Schéma.
+    - Qu'un "trajet fréquent" veut dire la "ligne" la plus utilisée (GROUP BY trajets.ligne_id).
     - Renvoie UNIQUEMENT la requête SQL. Aucun texte avant ou après, pas de balises. Commence par SELECT.
     """
 

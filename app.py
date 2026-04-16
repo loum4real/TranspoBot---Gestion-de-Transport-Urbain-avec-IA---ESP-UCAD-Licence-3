@@ -185,32 +185,26 @@ async def chat_ia(q: QuestionIA):
         sql_query = response.json()["choices"][0]["message"]["content"].strip()
         sql_query = sql_query.replace("```sql", "").replace("```", "").strip()
 
-        # SÉCURITÉ : Uniquement des requêtes SELECT
+        # SÉCURITÉ : Si l'IA refuse ou génère autre chose qu'un SELECT
         if not sql_query.upper().startswith("SELECT"):
-            return {"answer": "⛔ <strong>SÉCURITÉ :</strong> Seules les requêtes SELECT sont autorisées !"}
+            return {"answer": "🔒 <strong>CONFIDENTIALITÉ :</strong> Je n'ai pas l'autorisation d'accéder aux comptes utilisateurs ou aux données de sécurité du système."}
         
-        forbidden_keywords = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "GRANT"]
+        forbidden_keywords = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "GRANT", "UTILISATEURS"]
         if any(kw in sql_query.upper() for kw in forbidden_keywords):
-            return {"answer": "⛔ <strong>SÉCURITÉ :</strong> Mots-clés de modification détectés. Requête rejetée."}
+            return {"answer": "🔒 <strong>CONFIDENTIALITÉ :</strong> Ces données sont protégées. Je ne peux consulter que les informations liées à la flotte et aux trajets."}
 
         # ÉTAPE 2 : Exécution de la requête SQL
-        print(f"--- REQUÊTE SQL GÉNÉRÉE PAR L'IA ---\n{sql_query}\n----------------------------------")
         result = executer_requete(sql_query)
         
-        # Formatage de la réponse
+        # Formatage de la réponse vide
         if not result:
-            return {"answer": "L'analyse a été effectuée, mais la base de données ne contient aucun résultat correspondant à votre demande."}
+            return {"answer": "Aucun résultat trouvé pour votre demande."}
 
-        # ÉTAPE 3 : Appel à l'IA pour générer une réponse en langage naturel (français) basée sur les RÉSULTATS
+        # ÉTAPE 3 : Synthèse en langage naturel
         prompt_synthese = f"""Tu es l'assistant de gestion TranspoBot.
 Question de l'utilisateur : "{q.question}"
-Résultats de la base de données : {result[:10]}
-
-CONSIGNES DE RÉPONSE :
-- Sois direct, professionnel et précis.
-- INTERDICTION de mentionner : "JSON", "lignes", "données disponibles", "selon la base".
-- Ne dis pas "connectés" si tu parles de simples noms.
-- Rédige UNE seule phrase courte et claire en Français."""
+Résultats : {result[:10]}
+Rédige une réponse courte en Français."""
         
         response_fr = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",

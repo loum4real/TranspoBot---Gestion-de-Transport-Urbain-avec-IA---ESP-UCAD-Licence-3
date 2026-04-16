@@ -202,9 +202,16 @@ async def chat_ia(q: QuestionIA):
             return {"answer": "L'analyse a été effectuée, mais la base de données ne contient aucun résultat correspondant à votre demande."}
 
         # ÉTAPE 3 : Appel à l'IA pour générer une réponse en langage naturel (français) basée sur les RÉSULTATS
-        prompt_synthese = f"""Tu es TranspoBot. La question de l'utilisateur était : "{q.question}".
-Voici les données extraites de la base (en JSON) : {result[:10]} (limité à 10 lignes max).
-Consigne : Rédige UNE phrase très courte, naturelle et cordiale en FRANÇAIS, donnant la réponse exacte issue de ces données."""
+        prompt_synthese = f"""Tu es l'assistant de gestion TranspoBot.
+Question de l'utilisateur : "{q.question}"
+Résultats de la base de données : {result[:10]}
+
+CONSIGNES DE RÉPONSE :
+- Sois direct, professionnel et précis.
+- Donne la réponse immédiatement (ex: "Il y a actuellement X véhicules hors service.").
+- INTERDICTION de mentionner : "JSON", "lignes", "données disponibles", "selon la base".
+- N'utilise pas d'expressions d'excuses comme "Désolé" ou "Il semble que" si l'information est présente.
+- Rédige UNE seule phrase courte et claire en Français."""
         
         response_fr = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",

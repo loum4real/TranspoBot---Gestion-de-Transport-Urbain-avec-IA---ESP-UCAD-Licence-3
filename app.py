@@ -158,6 +158,10 @@ async def chat_ia(q: QuestionIA):
     Demande: "{q.question}"
     
     Règles STRICTES:
+    - "flotte", "bus", "véhicules" ou "voitures" désignent la table 'vehicules'.
+    - Les statuts possibles pour un véhicule sont : 'actif', 'maintenance', 'hors_service'.
+    - Si l'utilisateur demande "hors service" ou "en panne", cherche statut = 'hors_service'.
+    - Si l'utilisateur fait une faute de frappe, utilise LIKE '%terme%' pour plus de flexibilité.
     - Fais des JOIN pour récupérer les noms réels quand nécessaire (ex: lignes.nom, vehicules.immatriculation).
     - NE CRÉE PAS DE COLONNES IMAGINAIRES. Utilise uniquement les colonnes listées dans le Schéma.
     - Qu'un "trajet fréquent" veut dire la "ligne" la plus utilisée (GROUP BY trajets.ligne_id).

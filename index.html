@@ -251,7 +251,7 @@
 </div></div>
 
 <script>
-const API = '';
+const API = window.location.origin;
 let token = localStorage.getItem('token');
 let user = JSON.parse(localStorage.getItem('user'));
 
@@ -346,6 +346,10 @@ async function chargerDashboard() {
     document.getElementById('stat-vehicules').textContent = d.vehicules_actifs;
     document.getElementById('stat-recette').textContent = d.recette_totale.toLocaleString() + ' CFA';
     document.getElementById('stat-chauffeurs').textContent = d.chauffeurs_libres;
+    
+    // Désactiver le warning d'accessibilité Highcharts
+    Highcharts.setOptions({ accessibility: { enabled: false } });
+    
     initialiserGraphique();
 }
 

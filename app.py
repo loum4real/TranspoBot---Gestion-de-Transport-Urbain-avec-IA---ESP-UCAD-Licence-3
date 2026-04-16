@@ -139,9 +139,8 @@ async def chat_ia(q: QuestionIA):
     if not GROQ_API_KEY:
         return {"answer": "⚠️ Clé API Groq manquante. L'IA est désactivée."}
 
-    # 1. Définition du Schéma pour le Text-to-SQL
+    # 1. Définition du Schéma pour le Text-to-SQL (On retire la table utilisateurs pour la sécurité)
     schema = """
-    Table utilisateurs (id, nom_utilisateur, mot_de_passe, nom_complet, role)
     Table vehicules (id, immatriculation, type, capacite, statut)
     Table chauffeurs (id, nom, prenom, telephone, numero_permis, categorie_permis, vehicule_id, disponibilite)
     Table lignes (id, code, nom, origine, destination, distance_km, duree_minutes)
@@ -158,6 +157,7 @@ async def chat_ia(q: QuestionIA):
     Demande: "{q.question}"
     
     Règles STRICTES:
+    - Si l'utilisateur demande des infos sur les comptes ou mots de passe, refuse poliment.
     - "flotte", "bus", "véhicules" ou "voitures" désignent la table 'vehicules'.
     - Les statuts possibles pour un véhicule sont : 'actif', 'maintenance', 'hors_service'.
     - Si l'utilisateur demande "hors service" ou "en panne", cherche statut = 'hors_service'.
@@ -208,9 +208,8 @@ Résultats de la base de données : {result[:10]}
 
 CONSIGNES DE RÉPONSE :
 - Sois direct, professionnel et précis.
-- Donne la réponse immédiatement (ex: "Il y a actuellement X véhicules hors service.").
 - INTERDICTION de mentionner : "JSON", "lignes", "données disponibles", "selon la base".
-- N'utilise pas d'expressions d'excuses comme "Désolé" ou "Il semble que" si l'information est présente.
+- Ne dis pas "connectés" si tu parles de simples noms.
 - Rédige UNE seule phrase courte et claire en Français."""
         
         response_fr = requests.post(
